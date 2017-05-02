@@ -18,4 +18,4 @@ List of files
 	3D Closest point method with implicit time-stepping (for the laplacian) [WIP]
 	
       RD_Cap_EvolvingDomain.m 	             
-        3D Closest point method with explicit time-stepping and evolving domain
+	3D Closest point method with explicit time-stepping and evolving domain
