@@ -15,7 +15,7 @@ paramf = @(N) paramSphereRing(N, [0 inf], rho, cen);
 loaddata = 1;
 
 if (loaddata == 1)
-  dx = 0.025;      % grid size ###NOT LOWER THAN 0.025 ON LAPTOP###
+  dx = 0.05;      % grid size ###NOT LOWER THAN 0.025 ON LAPTOP###
 
   % make vectors of x, y, z positions of the grid
   x1d = (-2.0:dx:2.0)';
@@ -131,8 +131,17 @@ colorbar
 %Au = nuu*(E*L) - lambda*(I-E);
 %Av = nuv*(E*L) - lambda*(I-E);
 
-tol = 1e-8;
-maxit = 20;
+tol = 1e-10;
+maxit = 40;
+
+
+%Linear Matrices
+Au = I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E);
+Av = I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E);
+
+%Preconditioner
+[Lu,Uu] = ilu(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
+[Lv,Uv] = ilu(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
 
 for kt = 1:numtimesteps
   %% MOL: explicit Euler timestepping
@@ -161,15 +170,22 @@ for kt = 1:numtimesteps
     %u = E*unew;
     %v = E*vnew;
     
+    %Preconditioner
+    %[Lu,Uu] = ilu(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-10));
+    %[Lv,Uv] = ilu(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-10));
     
     %matrix solver (lsqr, bicg, cgs, gmres)
     %HERE! Try gmres with u as initial guess, check restart
-    [unew, flagu] = cgs(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),(u + dt*f(u,v)), tol, maxit);
-    [vnew, flagv] = cgs(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),(v + dt*g(u,v)), tol, maxit);
+    %[unew, flagu] = gmres(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),(u + dt*f(u,v)), [], tol, maxit, [], [], u);
+    %[vnew, flagv] = gmres(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),(v + dt*g(u,v)), [], tol, maxit, [], [], v);
     
     %With flags (for debugging)
-    %unew = cgs(I - ddx*dt.*E*L + 6*dt/dx.*(I - E),(u + dt*f(u,v)));
-    %vnew = cgs(I - ddy*dt.*E*L + 6*dt/dx.*(I - E),(v + dt*g(u,v)));
+    unew = gmres(Au,(u + dt*f(u,v)), 10, tol, maxit, Lu, Uu);
+    vnew = gmres(Av,(v + dt*g(u,v)), 10, tol, maxit, Lv, Uv);
+    
+    %Slash method
+    %unew = (I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E))\(u + dt*f(u,v));
+    %vnew = (I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E))\(v + dt*g(u,v));
     
     u = unew;
     v = vnew;
@@ -203,14 +219,22 @@ for kt = 1:numtimesteps
     
     %(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E)))*unew = u + dt*f(u,v)
     
+    %Preconditioner
+    %[Lu,Uu] = ilu(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-6));
+    %[Lv,Uv] = ilu(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-6));
+
     %inv() doesn't cut it here, we will need to implement an iterative
     %matrix solver (lsqr, bicg, cgs, gmres)
-    %[unew, flagu] = cgs(I - ddx*dt.*E*L + 6*dt/dx.*(I - E),(u + dt*f(u,v)));
-    %[vnew, flagv] = cgs(I - ddy*dt.*E*L + 6*dt/dx.*(I - E),(v + dt*g(u,v)));
+    [unew, flagu] = gmres(Au,(u + dt*f(u,v)), 10, tol, maxit, Lu, Uu);
+    [vnew, flagv] = gmres(Av,(v + dt*g(u,v)), 10, tol, maxit, Lv, Uv);
     
     %With flags (for debugging)
-    unew = cgs(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),(u + dt*f(u,v)), tol, maxit);
-    vnew = cgs(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),(v + dt*g(u,v)), tol, maxit);
+    %unew = gmres(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),(u + dt*f(u,v)), [], tol, maxit, Lu, Uu, u);
+    %vnew = gmres(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),(v + dt*g(u,v)), [], tol, maxit, Lv, Uv, v);
+    
+    %Slash method
+    %unew = (I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E))\(u + dt*f(u,v));
+    %vnew = (I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E))\(v + dt*g(u,v));
     
     u = unew;
     v = vnew;
