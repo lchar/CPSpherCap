@@ -18,9 +18,9 @@ if (loaddata == 1)
   dx = 0.05;      % grid size ###NOT LOWER THAN 0.025 ON LAPTOP###
 
   % make vectors of x, y, z positions of the grid
-  x1d = (-2.0:dx:2.0)';
+  x1d = (-1.5:dx:1.5)';
   y1d = x1d;
-  z1d = x1d;
+  z1d = (-0.5:dx:1.5)';
   nx = length(x1d);
   ny = length(y1d);
   nz = length(z1d);
@@ -69,6 +69,7 @@ if (loaddata == 1)
 
 
   %% discrete operators
+  tic
   disp('building laplacian and interp matrices');
   L = laplacian_3d_matrix(gg.x1d,gg.y1d,gg.z1d, 2, gg.band, gg.band);
   E = interp3_matrix(gg.x1d,gg.y1d,gg.z1d, gg.cpx, gg.cpy, gg.cpz, p, gg.band);
@@ -77,6 +78,7 @@ if (loaddata == 1)
   % Dirichlet BCs: mirror for ghost points outside of surface edges.
   % Comment this out for Neumann BCs.
   E(gg.bdy,:) = -E(gg.bdy,:);
+  toc
 
   %% plotting grid
   [xp,yp,zp] = paramf(256);
@@ -98,9 +100,15 @@ g = @(u,v) ( -bB*u - a^2*A^2*c/d^2*v - bB*d/a/A*u.*u - 2*a*A*c/d*u.*v - c*u.*u.*
 
 
 %% initial conditions - perturbation from steady state
-pert = 0.05*exp(-(10*(gg.z-.1)).^2).*cos(5*atan2(gg.y, gg.x)) + 0.08*rand(size(gg.x));
-u0 = pert;  v0 = 0.5*pert;
+%pert = 0.5*1000000*besselj(5, 9/R*sqrt(gg.x.^2 + gg.y.^2)).*cos(5*atan2(gg.y, gg.x) + 0.7854) + 1*1000000*rand(size(gg.x));
+% From external file
+pert = 0.3*10^8*csvread('eigf51.dat') + 0.3*10^8*csvread('eigf03.dat') + 0.3*10^8*csvread('eigf32.dat');
+
+u0 = 1.0*(7.494760741116487 * 0.009046337986/(9.046337990295378/0.00001))*pert;  
+v0 = 1.0*(-0.76388648350 * 0.009046337986/(9.046337990295378/0.00001))*pert;
 u = u0;  v = v0;
+
+
 
 %% time-stepping
 Tf = 5000;
@@ -136,12 +144,27 @@ maxit = 40;
 
 
 %Linear Matrices
-Au = I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E);
-Av = I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E);
+Au = I - ddx*dt.*E*L + 6*dt/dx^2.*ddx*(I - E);
+Av = I - ddy*dt.*E*L + 6*dt/dx^2.*ddy*(I - E);
 
 %Preconditioner
-[Lu,Uu] = ilu(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
-[Lv,Uv] = ilu(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
+tic
+%[Lu,Uu] = ilu(I - ddx*dt.*E*L + ddx*6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
+%[Lv,Uv] = ilu(I - ddy*dt.*E*L + ddy*6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
+toc
+
+%Max/min/norm table
+maxu = [max(u)];
+minu = [min(u)];
+sumu = [sum(u)/size(u,1)];
+normu = []; %Use sum instead?
+ttable = [];
+
+%Plot Tables
+%figure(2);
+%Tplot = scatter(ttable, maxu);
+%title('Max Norm')
+%xlabel('t'); ylabel('max');
 
 for kt = 1:numtimesteps
   %% MOL: explicit Euler timestepping
@@ -187,6 +210,11 @@ for kt = 1:numtimesteps
     %unew = (I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E))\(u + dt*f(u,v));
     %vnew = (I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E))\(v + dt*g(u,v));
     
+    %Updating norm table
+    if kt >= 25
+        normu(size(normu,2)+1) = norm(unew - u);
+    end;
+    
     u = unew;
     v = vnew;
     
@@ -199,6 +227,19 @@ for kt = 1:numtimesteps
     set(Hplot, 'CData', sphplot);
     title( ['u at time ' num2str(t) ', kt= ' num2str(kt)] );
     drawnow;
+    
+    %Updating Tables
+    if kt >= 25
+        maxu(size(maxu,2)+1) = [max(u)];
+        minu(size(minu,2)+1) = [min(u)];
+        sumu(size(normu,2)+1) = [sum(u)/size(u,1)];
+        ttable(size(ttable,2)+1) = [t];
+    
+        %Updating Plot
+        figure(2);
+        Tplot = scatter(ttable, normu);
+        xlabel('t'); ylabel('max');
+    end;
   else
     %Old explicit method
     %rhsu = ddx*(L*u) + f(u,v);
@@ -240,6 +281,7 @@ for kt = 1:numtimesteps
     v = vnew;
     
     t = kt*dt;
+
   end;
 end;
 
