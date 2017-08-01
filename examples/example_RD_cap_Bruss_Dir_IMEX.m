@@ -3,19 +3,21 @@
 % fixed but as the parameter gamma decreases, the curvature of the
 % cap decreases.
 
+tic
+
 R = 1.00;          % cap diameter
 gamma = 0.45;      % shape parameter
 rho = R / gamma;  % radius of the sphere
 cen = [0 0 -sqrt(rho^2 - R^2)];
 
 cpf = @(x,y,z) cpSphereRing(x, y, z, [0 inf], rho, cen);
-paramf = @(N) paramSphereRing(N, [0 inf], rho, cen);
+paramf = @(N) paramSphereRing(N, [0 inf], rho, cen); %Needed for plotting
 
 
 loaddata = 1;
 
 if (loaddata == 1)
-  dx = 0.05;      % grid size ###NOT LOWER THAN 0.025 ON LAPTOP###
+  dx = 0.05;      % grid size ###NOT LOWER THAN 0.025 ON LAPTOP (perhaps not true anymore)###
 
   % make vectors of x, y, z positions of the grid
   x1d = (-1.5:dx:1.5)';
@@ -52,41 +54,25 @@ if (loaddata == 1)
   
   %cprefine step
   
-  gc.dim = 3;
-  gc.dx = dx;
-  gc.x1d = x1d;  gc.y1d = y1d;  gc.z1d = z1d;
-  gc.cpfun = cpf;
-  gc.band = band;
-  gc.x = xx(band);  gc.y = yy(band);  gc.z = zz(band);
-  gc.cpx = cpx;  gc.cpy = cpy;  gc.cpz = cpz;
-  gc.dist = dist;
-  gc.bdy = bdy;
-  
-  gg = gc;
-  %gg = refine_cpgrid_bw(gc,bw);
-  
-  %x = g.x(g.band); y = g.y(g.band); z = g.z(g.band);
-
+  dim = 3;
 
   %% discrete operators
-  tic
   disp('building laplacian and interp matrices');
-  L = laplacian_3d_matrix(gg.x1d,gg.y1d,gg.z1d, 2, gg.band, gg.band);
-  E = interp3_matrix(gg.x1d,gg.y1d,gg.z1d, gg.cpx, gg.cpy, gg.cpz, p, gg.band);
+  L = laplacian_3d_matrix(x1d, y1d, z1d, 2, band, band);
+  E = interp3_matrix(x1d, y1d, z1d, cpx, cpy, cpz, p, band);
   I = speye(size(E));
 
   % Dirichlet BCs: mirror for ghost points outside of surface edges.
   % Comment this out for Neumann BCs.
-  E(gg.bdy,:) = -E(gg.bdy,:);
-  toc
-
+  E(bdy,:) = -E(bdy,:);
+ 
   %% plotting grid
   [xp,yp,zp] = paramf(256);
   % Eplot is a matrix which interpolations data onto the plotting grid
-  Eplot = interp3_matrix(gg.x1d, gg.y1d, gg.z1d, xp(:), yp(:), zp(:), p, gg.band);
+  Eplot = interp3_matrix(x1d, y1d, z1d, xp(:), yp(:), zp(:), p, band);
 end
 
-figure(1); clf;
+%figure(1); clf;
 
 
 %% parameters and functions for Variational Brusselator
@@ -100,18 +86,16 @@ g = @(u,v) ( -bB*u - a^2*A^2*c/d^2*v - bB*d/a/A*u.*u - 2*a*A*c/d*u.*v - c*u.*u.*
 
 
 %% initial conditions - perturbation from steady state
-%pert = 0.5*1000000*besselj(5, 9/R*sqrt(gg.x.^2 + gg.y.^2)).*cos(5*atan2(gg.y, gg.x) + 0.7854) + 1*1000000*rand(size(gg.x));
+pert = 0.5*1000000*besselj(5, 9/R*sqrt(x.^2 + y.^2)).*cos(5*atan2(y, x) + 0.7854) + 1*1000000*rand(size(x));
 % From external file
-pert = 0.3*10^8*csvread('eigf51.dat') + 0.3*10^8*csvread('eigf03.dat') + 0.3*10^8*csvread('eigf32.dat');
+%pert = 0.3*10^8*csvread('eigf51.dat') + 0.3*10^8*csvread('eigf03.dat') + 0.3*10^8*csvread('eigf32.dat');
 
 u0 = 1.0*(7.494760741116487 * 0.009046337986/(9.046337990295378/0.00001))*pert;  
 v0 = 1.0*(-0.76388648350 * 0.009046337986/(9.046337990295378/0.00001))*pert;
 u = u0;  v = v0;
 
-
-
 %% time-stepping
-Tf = 5000;
+Tf = 5;
 dt = 0.1;
 %Old time step for explicit method
 %dt = 0.1 * (1/max(ddx,ddy)) * gg.dx^2;
@@ -120,18 +104,18 @@ numtimesteps = ceil(Tf/dt);
 dt = Tf / numtimesteps;
 
 
-figure(1);
-sphplot = Eplot*u;
-sphplot = reshape(sphplot, size(xp));
-Hplot = surf(xp, yp, zp, sphplot);
-title('initial u')
-xlabel('x'); ylabel('y'); zlabel('z');
-axis equal
-view(-10, 60)
+%figure(1);
+%sphplot = Eplot*u;
+%sphplot = reshape(sphplot, size(xp));
+%Hplot = surf(xp, yp, zp, sphplot);
+%title('initial u')
+%xlabel('x'); ylabel('y'); zlabel('z');
+%axis equal
+%view(-10, 60)
 %axis off;
-shading interp
+%shading interp
 %camlight left
-colorbar
+%colorbar
 
 %% Method-of-lines approach
 % See [vonGlehn/Macdonald/Maerz 2013]
@@ -139,6 +123,7 @@ colorbar
 %Au = nuu*(E*L) - lambda*(I-E);
 %Av = nuv*(E*L) - lambda*(I-E);
 
+%gmres tolerance and maximal number of iterations
 tol = 1e-10;
 maxit = 40;
 
@@ -148,17 +133,17 @@ Au = I - ddx*dt.*E*L + 6*dt/dx^2.*ddx*(I - E);
 Av = I - ddy*dt.*E*L + 6*dt/dx^2.*ddy*(I - E);
 
 %Preconditioner
-tic
-%[Lu,Uu] = ilu(I - ddx*dt.*E*L + ddx*6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
-%[Lv,Uv] = ilu(I - ddy*dt.*E*L + ddy*6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-4));
-toc
+%tic
+[Lu,Uu] = ilu(I - ddx*dt.*E*L + ddx*6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1.25e-2));
+[Lv,Uv] = ilu(I - ddy*dt.*E*L + ddy*6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1.25e-2));
+%toc
 
 %Max/min/norm table
-maxu = [max(u)];
-minu = [min(u)];
-sumu = [sum(u)/size(u,1)];
-normu = []; %Use sum instead?
-ttable = [];
+%maxu = [max(u)];
+%minu = [min(u)];
+%sumu = [sum(u)/size(u,1)];
+%normu = []; %Use sum instead?
+%ttable = [];
 
 %Plot Tables
 %figure(2);
@@ -182,7 +167,6 @@ for kt = 1:numtimesteps
 
   %% Ruuth-Merriman
   
-
   if ( (mod(kt,25)==0) || (kt<=10) || (kt==numtimesteps) )
     %Old explicit method: Will need to use this when evolving the domain
     %with a smaller time step.
@@ -198,48 +182,41 @@ for kt = 1:numtimesteps
     %[Lv,Uv] = ilu(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),struct('type','ilutp','droptol',1e-10));
     
     %matrix solver (lsqr, bicg, cgs, gmres)
-    %HERE! Try gmres with u as initial guess, check restart
-    %[unew, flagu] = gmres(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),(u + dt*f(u,v)), [], tol, maxit, [], [], u);
-    %[vnew, flagv] = gmres(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),(v + dt*g(u,v)), [], tol, maxit, [], [], v);
-    
     %With flags (for debugging)
-    unew = gmres(Au,(u + dt*f(u,v)), 10, tol, maxit, Lu, Uu);
-    vnew = gmres(Av,(v + dt*g(u,v)), 10, tol, maxit, Lv, Uv);
-    
-    %Slash method
-    %unew = (I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E))\(u + dt*f(u,v));
-    %vnew = (I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E))\(v + dt*g(u,v));
-    
+    %remove flagu and table for convergence info
+    [unew, flagu] = gmres(Au,(u + dt*f(u,v)), 10, tol, maxit, Lu, Uu, u);
+    [vnew, flagu] = gmres(Av,(v + dt*g(u,v)), 10, tol, maxit, Lv, Uv, v);
+
     %Updating norm table
-    if kt >= 25
-        normu(size(normu,2)+1) = norm(unew - u);
-    end;
+    %if kt >= 25
+    %    normu(size(normu,2)+1) = norm(unew - u);
+    %end;
     
     u = unew;
     v = vnew;
     
     t = kt*dt;
     
-    disp([kt t]);
-    sphplot = Eplot*u;
-    sphplot = reshape(sphplot, size(xp));
-    set(0, 'CurrentFigure', 1);
-    set(Hplot, 'CData', sphplot);
-    title( ['u at time ' num2str(t) ', kt= ' num2str(kt)] );
-    drawnow;
+    %disp([kt t]);
+    %sphplot = Eplot*u;
+    %sphplot = reshape(sphplot, size(xp));
+    %set(0, 'CurrentFigure', 1);
+    %set(Hplot, 'CData', sphplot);
+    %title( ['u at time ' num2str(t) ', kt= ' num2str(kt)] );
+    %drawnow;
     
     %Updating Tables
-    if kt >= 25
-        maxu(size(maxu,2)+1) = [max(u)];
-        minu(size(minu,2)+1) = [min(u)];
-        sumu(size(normu,2)+1) = [sum(u)/size(u,1)];
-        ttable(size(ttable,2)+1) = [t];
-    
-        %Updating Plot
-        figure(2);
-        Tplot = scatter(ttable, normu);
-        xlabel('t'); ylabel('max');
-    end;
+    %if kt >= 25
+    %    maxu(size(maxu,2)+1) = [max(u)];
+    %    minu(size(minu,2)+1) = [min(u)];
+    %    sumu(size(normu,2)+1) = [sum(u)/size(u,1)];
+    %    ttable(size(ttable,2)+1) = [t];
+    %
+    %    %Updating Plot
+    %    figure(2);
+    %    Tplot = scatter(ttable, normu);
+    %    xlabel('t'); ylabel('max');
+    %end;
   else
     %Old explicit method
     %rhsu = ddx*(L*u) + f(u,v);
@@ -266,16 +243,8 @@ for kt = 1:numtimesteps
 
     %inv() doesn't cut it here, we will need to implement an iterative
     %matrix solver (lsqr, bicg, cgs, gmres)
-    [unew, flagu] = gmres(Au,(u + dt*f(u,v)), 10, tol, maxit, Lu, Uu);
-    [vnew, flagv] = gmres(Av,(v + dt*g(u,v)), 10, tol, maxit, Lv, Uv);
-    
-    %With flags (for debugging)
-    %unew = gmres(I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E),(u + dt*f(u,v)), [], tol, maxit, Lu, Uu, u);
-    %vnew = gmres(I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E),(v + dt*g(u,v)), [], tol, maxit, Lv, Uv, v);
-    
-    %Slash method
-    %unew = (I - ddx*dt.*E*L + 6*dt/dx^2.*(I - E))\(u + dt*f(u,v));
-    %vnew = (I - ddy*dt.*E*L + 6*dt/dx^2.*(I - E))\(v + dt*g(u,v));
+    [unew, flagu] = gmres(Au,(u + dt*f(u,v)), 10, tol, maxit, Lu, Uu, u);
+    [vnew, flagv] = gmres(Av,(v + dt*g(u,v)), 10, tol, maxit, Lv, Uv, v);
     
     u = unew;
     v = vnew;
@@ -285,3 +254,4 @@ for kt = 1:numtimesteps
   end;
 end;
 
+toc
