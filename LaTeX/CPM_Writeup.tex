@@ -1,0 +1,564 @@
+\documentclass[fleqn,12pt]{siamart1116}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{epstopdf}
+
+\setlength{\topmargin}{-0mm}
+\setlength{\textheight}{215mm}
+\setlength{\textwidth}{157mm}
+\setlength{\evensidemargin}{5mm}
+\setlength{\oddsidemargin}{5mm}
+
+\newcommand{\C} { {\mathbb C} }
+
+\begin{document}
+
+\title{Notes: CPM}
+
+\author{Laurent Charette \& co.}
+
+\today
+
+%\maketitle
+
+%\section{Introduction}
+
+%Hey! Closest point method and things and pickles!
+
+%\section{Method description}
+
+%Band, then backtrack, then step. Implicit method.
+
+\section{Partial differential equations in a time dependent domain}
+
+Let $\Omega(t)$ be a domain in $\mathbb{R}^n$ space at time $t$ with any point $\mathbf{x}(t)$ in the domain following a fixed trajectory in time, which will generate at every time a velocity field
+\begin{align}
+\mathbf{v}(\mathbf{x}, t) = \frac{d\mathbf{x}}{dt}.
+\end{align}
+When solving partial differential equations on such time dependent domains we need to adjust the equations for regions in the domain where points are contracted or expanded and the solutions are augmented and reduced respectively compared to the same equation resolved on a constant domain. It can be shown using the Reynolds transport theorem that for a reaction-diffusion equation there is an extra divergence term
+\begin{align}
+\frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\nabla^2_{\Omega(t)} \mathbf{u} + \mathbf{f}(\mathbf{u}) - \nabla_{\Omega(t)} \cdot (\mathbf{u} : \mathbf{v}),
+\end{align}
+where $\mathbf{u} \in \mathbb{R}^m$, with $m$ being the number of equations, $\mathbf{D}$ is a diagonal matrix of diffusion coefficients, $\nabla^2_{\Omega(t)}$ is the Laplace-Beltrami operator for the domain $\Omega$ at time $t$, $\nabla_{\Omega(t)}$ is the tangential gradient on the domain $\Omega$ and the double dot operation multiplies each component of $\mathbf{u}$ to $\mathbf{v}$, for example,
+\begin{align}
+\begin{pmatrix} u_1 \\ u_2 \end{pmatrix} : \mathbf{v} = \begin{pmatrix} u_1 \mathbf{v} \\ u_2 \mathbf{v}. \end{pmatrix}
+\end{align}
+This same distribution on each component of $\mathbf{u}$ also applies to the divergence operator.
+
+Here we will use simple domains such as circles or spheres. These domains work very well with the closest point method and their divergence terms are readily computable.
+
+\subsection{Linear Growth}
+
+Our first example is of a isotropically linearly growing circle. Isotropic growth means domains retain the same relative distance between any two points. The radius of the circle follows the following function
+\begin{align}
+R(t) = R_0 \cdot (1 + k t),
+\end{align}
+where $R_0$ is the initial radius and $k$ is the constant rate of growth. The velocity field will be
+\begin{align}
+\mathbf{v}(t) = k \hat{\mathbf{x}},
+\end{align}
+where $\hat{\mathbf{x}}$ is the unit vector in the direction of $\mathbf{x}$ from the circle's centre (usually chosen to be the origin without loss of generality). The divergence term will be
+\begin{align}
+\nabla_{\Omega(t)} \cdot (\mathbf{v} u) = (\nabla_{\Omega(t)} \cdot \mathbf{v})U = \frac{ku}{|\mathbf{x}|} = \frac{ku}{R(t)}.
+\end{align}
+The first equality is due to the surface being always normal to $\mathbf{v}$, so by the product rule
+\begin{align}
+\nabla_{\Omega(t)} \cdot (\mathbf{v} u) = (\nabla_{\Omega(t)} \cdot \mathbf{v})u \ \nabla_{\Omega(t)} u \cdot \mathbf{v},
+\end{align}
+and the gradient of $u$ has to be tangent to the surface, thus normal to $\mathbf{v}$ and the second term is equal to zero.
+
+\subsection{Exponential Growth}
+
+The second example is of a circle growing isotropically and exponentially in time. The radius function is
+\begin{align}
+R(t) = R_0 e^{\rho t},\label{expRfun}
+\end{align}
+where $R_0$ is the initial radius and $\rho$ is a positive constant relative rate of change. The velocity field is
+\begin{align}
+\mathbf{v} = \rho R(t) \hat{\mathbf{x}} = \rho \mathbf{x}.
+\end{align}
+The divergence term is
+\begin{align}
+\nabla_{\Omega(t)} \cdot (\mathbf{v} u) = (\nabla_{\Omega(t)} \cdot \mathbf{v})u = \rho u.
+\end{align}
+
+\subsection{Logistic Growth}
+
+The next example is another isotropic growth normal to the surface. The radius of the circle follows a logistic function
+\begin{align}
+R(t) = R_0\frac{e^{\rho t}}{1 + \frac{1}{\zeta}(e^{\rho t} - 1)},
+\end{align}
+where $R_0$ is the initial radius, $\rho$ is the initial relative rate of change and $\zeta$ is the relative size of the largest domain. The velocity field is
+\begin{align}
+\mathbf{v}(t) = \rho R(t)\left(1 - \frac{R(t)}{R_0 \zeta}\right) \hat{\mathbf{x}} = \rho \left(1 - \frac{R(t)}{R_0 \zeta}\right)\mathbf{x}.
+\end{align}
+The divergence term is thus
+\begin{align}
+\nabla_{\Omega(t)} \cdot (\mathbf{v} u) = (\nabla_{\Omega(t)} \cdot \mathbf{v}) u = \left(1 - \frac{R(t)}{R_0 \zeta}\right) u.
+\end{align}
+
+\subsection{Toroidal Growth}
+
+Toroidal growth is our first example of a non-isotropic growing domain. We introduce the \emph{toroidal coordinates}
+\begin{align}\label{torcoords}
+x &= \frac{R \sinh \eta}{\cosh \eta - \cos \xi}, & y &= \frac{R \sin  \xi}{\cosh \eta - \cos \xi},
+\end{align}
+for $\eta \in [0, \infty)$ and $\xi \in [\pi / 2, \pi]$.
+The curves of constant $\xi$ will create a circle arc with endpoints at $(-R, 0)$ and $(R, 0)$ and centre at $(0, R \cot(\xi))$. We may extend the arc into a full circle by adding the arc of $\xi + \pi$ or equivalently extending the $\eta$ values with $\eta + \pi i$.
+
+To find our divergence term we will use the ``Plaza method''
+\begin{align}
+\nabla \cdot \mathbf{v} = \frac{\partial}{\partial t}(\ln(h)),
+\end{align}
+where $h$ is the scale factor for the toroidal coordinates $\eta$ used to describe our domain
+\begin{align}
+h &= \left|\frac{\partial}{\partial \eta}\mathbf{x}(\xi, \eta) \right|.
+\end{align}
+We may use the $\eta$ partial derivative on each coordinate and find the norm to find
+\begin{align}
+h = \frac{R}{\cosh(\eta) - \cos(\xi)},
+\end{align}
+and then find our dissipation factor
+\begin{align}
+\nabla \cdot \mathbf{v} = \frac{\partial}{\partial t} \ln \left( \frac{R}{\cosh(\eta) - \cos(\xi)} \right) = \frac{-\dot{\xi}\sin(\xi)}{\cosh(\eta) - \cos(\xi)} = \frac{-\dot{\xi}z}{R}.
+\end{align}
+We may then use a function for $\xi(t)$ according to our needs. For a given $\xi$ value the radius of the circle is
+\begin{align}
+r = \frac{R}{\sin(\xi)}.
+\end{align}
+We can then solve for $\xi$
+\begin{align}
+\xi = \arcsin\frac{R}{r}.
+\end{align}
+If we know a function for $r(t)$, then we can find $\dot{\xi}$
+\begin{align}
+\dot{\xi} = \frac{-R \dot{r}}{r \sqrt{r^2 - R^2}}.\label{torxir}
+\end{align}
+For example we can build a toroidal growth rate such that the perimeter of the circle is the same as exponential growth at all times. We have
+\begin{align}
+r(t) = r_0e^{\rho t} \label{torexprt}
+\end{align}
+\begin{align}
+\dot{\xi} = \frac{-R \rho r_0 e^{\rho t}}{r_0 e^{\rho t} \sqrt{r_0^2 e^{2 \rho t} - R^2}} = \frac{-R \rho}{\sqrt{r_0^2 e^{2 \rho t} - R^2}}
+\end{align}
+[Note] This creates a singularity at $\xi = \pi/2$, look into the substitution $u = \cos \xi$ and derive directly instead.
+
+In the case of logistic growth, we have
+\begin{align}
+R(t) = R_0\frac{e^{\rho t}}{1 + \frac{1}{\zeta}(e^{\rho t} - 1)},
+\end{align}
+
+\section{Adaptation of the closest point method on an evolving domain}
+
+\subsection{Closest point method description: Embedding method}
+
+Let $\Omega$ be a $n-1$-dimensional surface in $\mathbb{R}^{n}$. Let $\nabla_{\Omega}$ and $\nabla^2_{\Omega}$ be the surface gradient and Laplace-Beltrami operator associated to the surface $\Omega$. We may then use these operators to formulate differential equations on the surface
+\begin{align}
+u_t = f(\mathbf{x}, t, u, \nabla_{\Omega} u, \nabla^2_{\Omega} u),
+\end{align}
+where $\mathbf{x} \in \mathbb{R}^{n}$. The aim of the closest point method is to solve such equations numerically by associating points on a band surrounding the surface to its closest point on the surface.
+
+The closest point function $\text{cp}(\mathbf{x})$ maps points in $\mathbb{R}^{n}$ to a point on $\Omega$ such that the Euclidian distance between the two points is minimized
+\begin{align}
+\text{cp}(\mathbf{x}) = \min \| \mathbf{x} - \mathbf{y} \|, \quad \mathbf{y} \in \Omega.
+\end{align}
+This function allows for a function $u(\mathbf{x}, t)$ on $\Omega$ to be extended to the surrounding space using the extension operator $E$
+\begin{align}
+v(\mathbf{x}, t) = E u(\mathbf{x}, t) = u(\text{cp}(\mathbf{x}), t).
+\end{align}
+The extended function $v$ is constant in a normal direction to the surface, due to the fact that points on a line perpendicular to a surface all share the same closest point in a close enough neighbourhood of the surface.
+
+Because extended functions are constant in a normal direction to $\Omega$ there is an equivalence between the surface differential operators and the Cartesian differential operators in the surrounding space of the extended function evaluated on the surface. This is noted as three principles: the Gradient Principle, the Divergence Principle and the Laplacian Principle
+\begin{align}
+&\nabla (Eu)(y) = \nabla_{\Omega}u(y), & y &\in \Omega\\
+&\nabla \cdot (Eg)(y) = \nabla_{\Omega} \cdot g(y), & y &\in \Omega\\
+&\nabla^2 (Eu)(y) = \nabla^2_{\Omega}u(y), & y &\in \Omega,
+\end{align}
+for any smooth scalar function $u: \Omega \to \mathbb{R}$ and smooth vector field $g: \Omega \to \mathbb{R}^n$.
+
+The equivalence principles and the idempotence of the extension operator result in an equality between the PDE on the surface
+\begin{align}
+u_t &= A_{\Omega}(t, y, u), & u(y, 0) &= u_0(y), & y \in \Omega &, \ t \in [0, \infty],
+\end{align}
+and the restriction embedding equation
+\begin{align}\label{extsys}
+\begin{split}
+&v_t = EA(t, x, v)\\
+&v = Ev,\\
+&v(x, 0) = v_0(x), \quad x \in \mathbb{R}^n, \ t \geq 0,
+\end{split}
+\end{align}
+on the surface $\Omega$, where $A(t, x, v)$ is a spatial differential operator and $A_{\Omega}(t, x, v)$ is the associated surface operator.
+
+\subsection{Closest point method description: Discretization}
+
+The closest point extensiton onto the surrounding space to the surface $\Omega$ allows us to solve the extension system (\ref{extsys}) numerically using a finite difference method on a band $B(\Omega)$ around $\Omega$ with regular grid spacing $\Delta x$.
+
+The discretized version of the PDE has the following form
+\begin{align}
+\partial_t \mathbf{v} = \mathbf{Av},
+\end{align}
+where $\mathbf{v}$ is the discretization of the solution on a regular cartesian grid and $\mathbf{A}$ is the discretization of the differential operator. We will use a 2D five-point (seven-point in 3D) stencil for the discrete laplacian
+\begin{align}
+\mathbf{Lv}_{i,j} = \frac{1}{(\Delta x)^2}(v_{i+1, j} + v_{i-1, j} + v_{i, j+1} + v_{i, j-1} - 4v_{i, j} ),
+\end{align}
+where the indices $i, j$ denote the $i$th row and $j$th column in the grid space. In order to force the system to be constant in a normal direction, when solving using an explicit time stepping method we need to apply an extension from the closest points on the surface to the points on the band. We do this numerically by applying an interpolation of the solution on the band to the surface then reassigning the values onto the band.
+
+The time step and extension steps may be recombined together into a single operator that uses a penalty term
+\begin{align}
+\mathbf{A}_{pen} = \mathbf{EA} - \gamma(\mathbf{I} - \mathbf{E}),
+\end{align}
+where $\gamma$ is a penalty term. In the case of the finite difference discrete laplacian $\gamma = 2d/(\Delta x)^2$, the value of the diagonal elements of the operator with $d$3 the dimension of the embedding space.
+
+\subsection{Closest point method description: Dirichlet boundary conditions}
+For surfaces with a boundary the closest point method automatically applies homogeneous Neumann boundary conditions. In order to use Dirichlet boundary conditions we need to modify the closest point function
+\begin{align}
+\bar{\text{cp}}(\mathbf{x}) = \text{cp} \left( \mathbf{x} + 2(\text{cp}(\mathbf{x}) - \mathbf{x}) \right) = \text{cp} \left( 2\text{cp}(\mathbf{x}) - \mathbf{x} \right).
+\end{align}
+For points whose closest points lie in the interior of the surface this new function takes the closest of the point opposite to $\mathbf{x}$ normal to the surface, so the result is the same as $\text{cp}(\mathbf{x})$. For closest points $\mathbf{x}_g$ on the boundary the function creates a ghost point on the surface to which we can apply a boundary condition
+\begin{align}
+u(\mathbf{x}_g) = 2u(\text{cp}(\mathbf{x}_g)) - u(\bar{\text{cp}}(\mathbf{x}_g)),
+\end{align}
+where $u(\text{cp}(\mathbf{x}_g))$ is the value of the solution on the boundary. In the case of homogeneous Dirichlet boundary conditions we have $u(\text{cp}(\mathbf{x}_g)) = 0$ and thus
+\begin{align}
+u(\mathbf{x}_g) = - u(\bar{\text{cp}}(\mathbf{x}_g)).
+\end{align}
+To apply this to the numerical simulations we include it in the interpolation operator
+\begin{align}
+\mathbf{E}_{Dir}(boundary) = - \mathbf{E}(boundary).
+\end{align}
+
+\subsection{Evolving domain}
+
+The main challenge of adapting the closest point method in an evolving domain is to enable a sample of solution points at two different points to be added or subtracted. The solutions using this method are stored in a band of points and this band may increase or decrease in size from one time step to another. Furthermore it may be possible that a closest point on a specific time step is no longer sampled in the next step. 
+
+\begin{figure}[ht]
+	\centering
+		\includegraphics[width=0.60\textwidth]{Figures/CP_domain_t.eps}
+	\caption{Closest point backtrack}
+	\label{fig:CP_domain_t}
+\end{figure}
+
+To allow addition and multiplication of the solution at different time steps we need to interpolate the solutions on the past bands on the positions of the current closest points on the appropriate past times. This is possible using a parametrized growth function. For example with the circle using toroidal coordinates we may solve for each $\eta$ coordinate using only the $y$ coordinate of each closest points and the sign of their $x$ coordinate. We then just need to generate new points on past surfaces by changing $\xi$ accordingly.
+
+The number of additional interpolation operators to be computed is equal to the number of past points required to use a specific time stepping algorithm. For example the explicit or implicit Euler methods use only one past point, so we only need one extra operator. The special backward differential formula of order $n$ (SBDF$n$) uses $n$ past time steps, so we need $n$ additional operators on each time steps.
+
+\subsection{Example}
+
+As an example we can show the time discretization of a reaction-diffusion of two agents on an exponentially growing circle using SBDF2. The system of equations is
+\begin{align}
+U_t &= d\nabla^2_{\Omega} U - \nabla \cdot(\mathbf{v}U) + f(U, V)\\
+V_t &= \nabla^2_{\Omega} V - \nabla \cdot(\mathbf{v}V) + f(U, V).
+\end{align}
+Only implicitly solving for the Laplace-Beltrami operator, SBDF2 discretization yields
+\begin{align}
+\frac{1}{2\Delta t}(3U^{n + 1} - 4U^n + U^{n-1}) &= dLU^{n+1} + 2\hat{f}(U^n, V^n) - \hat{f}(U^{n-1}, V^{n-1})\\
+\frac{1}{2\Delta t}(3V^{n + 1} - 4V^n + V^{n-1}) &= LV^{n+1} + 2\hat{g}(U^n, V^n) - \hat{g}(U^{n-1}, V^{n-1}),
+\end{align}
+Where $U^i$, $V^i$ represents the solution to $U$, $V$ at time $i$, $L$ represents the discretization of the Laplace-Beltrami operator and the hatted functions include the extra divergence operator.
+
+In order to use an implicit method using the closest point method, we need to use the method of lines and change our discretized Laplace-Beltrami operator into
+\begin{align}
+\hat{L} = E_{n+1} L + \frac{2s}{\Delta x^2}(I - E_{n+1}).
+\end{align}
+This, paired with additional past steps interpolations yields
+\begin{align}
+\frac{1}{2\Delta t}(3E_{n+1}U^{n + 1} - 4E^{(n)}_{n+1}U^n + E^{(n-1)}_{n+1}U^{n-1}) &= d\hat{L}U^{n+1} + 2\hat{f}(E^{(n)}_{n+1}U^n, E^{(n)}_{n+1}V^n)\\
+& - \hat{f}(E^{(n-1)}_{n+1}U^{n-1}, E^{(n-1)}_{n+1}V^{n-1})\\
+\frac{1}{2\Delta t}(3E_{n+1}V^{n + 1} - 4E^{(n)}_{n+1}V^n + E^{(n-1)}_{n+1}V^{n-1}) &= \hat{L}V^{n+1} + 2\hat{g}(E^{(n)}_{n+1}U^n, E^{(n)}_{n+1}V^n)\\
+& - \hat{g}(E^{(n-1)}_{n+1}U^{n-1}, E^{(n-1)}_{n+1}V^{n-1}),
+\end{align}
+where$E^{(i)}_j$ is the past step interpolation of time step $i$ onto coordinates backtracked from step $j$. We then use a numerical solver like \emph{GMRES} to solve a solution at each time step
+
+\section{Convergence of heat equation, exponential growth}
+
+In this section we have the result of a convergence analysis for the heat equation
+\begin{align}
+U_t = \nabla U,
+\end{align}
+on a circle with initial radius $R_i$ and final radius $R_f$ at time $T = 10$. Using (\ref{expRfun}) we have $\rho = \frac{\ln 2}{10}$. We use the initial condition $U_0 = \cos \theta$ We then measure the maximum of the solution at the end and compare it to an exact solution $U = U_0 e^{-\rho t}$. We can then compute the error by subtracting the two and taking the maximum norm. We observe that the error converges to zero essentially quadratically.
+
+
+%$\Delta t = 0.025 \Delta x$, $T = 10$, $R_i = 0.5$, $R_f = 1.5$
+%\begin{center}
+%\begin{tabular}{ |c||c|c| } 
+% \hline
+% $\Delta x$ & Relative error & Absolute error \\ 
+% \hline
+% \hline
+% 0.01 & 0.001163398487232 & 3.633587635817290e-11 \\ 
+% \hline 
+% 0.02 & 4.854854591389884e-04 & 1.517321258308414e-11 \\ 
+% \hline
+% 0.04 & 0.008450679900098 & 2.664859908687598e-10 \\ 
+% \hline
+%\end{tabular}
+%\end{center}
+%\medskip
+
+%$\Delta t = 0.05 \Delta x$, $T = 10$, $R_i = 0.5$, $R_f = 1.5$
+%\begin{center}
+%\begin{tabular}{ |c||c|c| } 
+% \hline
+% $\Delta x$ & Relative error & Absolute error \\ 
+% \hline
+% \hline
+% 0.01 & 0.002596002309060 & 8.096386163680507e-11 \\ 
+% \hline 
+% 0.02 & 0.003829751212983 & 1.192951005495018e-10 \\ 
+% \hline
+% 0.04 & 0.001729145645280 & 5.397508980170216e-11 \\ 
+% \hline
+%\end{tabular}
+%\end{center}
+%\medskip
+
+%$\Delta t = 0.1 \Delta x$, $T = 10$, $R_i = 0.5$, $R_f = 1.5$
+%\begin{center}
+%\begin{tabular}{ |c||c|c| } 
+% \hline
+% $\Delta x$ & Relative error & Absolute error \\ 
+% \hline
+% \hline
+% 0.01 & 0.005390879942935 & 1.676628433086394e-10 \\ 
+% \hline 
+% 0.02 & 0.009721000369728 & 3.010382488081025e-10 \\ 
+% \hline
+% 0.04 & 0.015522849002012 & 4.779625194774985e-10 \\ 
+% \hline
+%\end{tabular}
+%\end{center}
+%\medskip
+
+%$\Delta t = 0.2 \Delta x$, $T = 10$, $R_i = 0.5$, $R_f = 1.5$
+%\begin{center}
+%\begin{tabular}{ |c||c|c| } 
+% \hline
+% $\Delta x$ & Relative error & Absolute error \\ 
+% \hline
+% \hline
+% 0.01 & 0.011008146351806 & 3.404643533958875e-10 \\ 
+% \hline 
+% 0.02 & 0.021367332549681 & 6.541546820114043e-10 \\ 
+% \hline
+% 0.04 & 0.040899147202805 & 1.228620360225433e-09 \\ 
+% \hline
+%\end{tabular}
+%\end{center}
+%\medskip
+
+$\Delta t = 0.2 \Delta x$, $T = 10$, $R_i = 1$, $R_f = 2$
+\begin{center}
+\begin{tabular}{ |c||c|c| } 
+ \hline
+ $\Delta x$ & Relative error & Absolute error \\ 
+ \hline
+ \hline
+ 0.01 & 2.695046328509639e-05 & 6.025160033916455e-08 \\ 
+ \hline 
+ 0.02 & 1.139616323823173e-04 & 2.547996364550206e-07 \\ 
+ \hline
+ 0.04 & 5.125983523438674e-04 & 1.146543478603313e-06 \\ 
+ \hline
+ 0.08 & 0.003268561103083 & 7.331099231577126e-06 \\ 
+ \hline
+\end{tabular}
+\end{center}
+\medskip
+
+$\Delta t = 0.1 \Delta x$, $T = 10$, $R_i = 1$, $R_f = 2$
+\begin{center}
+\begin{tabular}{ |c||c|c| } 
+ \hline
+ $\Delta x$ & Relative error & Absolute error \\ 
+ \hline
+ \hline
+ 0.01 & 2.997242062680792e-05 & 6.700781901873218e-08 \\ 
+ \hline 
+ 0.02 & 1.330760775963677e-04 & 2.975421086676491e-07 \\ 
+ \hline
+ 0.04 & 6.450472749473271e-04 & 1.442987013525968e-06 \\ 
+ \hline
+\end{tabular}
+\end{center}
+\medskip
+
+$\Delta t = 0.05 \Delta x$, $T = 10$, $R_i = 1$, $R_f = 2$
+\begin{center}
+\begin{tabular}{ |c||c|c| } 
+ \hline
+ $\Delta x$ & Relative error & Absolute error \\ 
+ \hline
+ \hline
+ 0.01 & 3.382657264389128e-05 & 7.562464247575298e-08 \\ 
+ \hline 
+ 0.02 & 1.623908849837536e-04 & 3.630971387633651e-07 \\ 
+ \hline
+ 0.04 & 8.721927363378148e-04 & 1.951560710512779e-06 \\ 
+ \hline
+\end{tabular}
+\end{center}
+\medskip
+
+We also performed a similar analysis on a circle where the domain would change every five steps
+
+$\Delta t = 0.2 \Delta x$, $T = 10$, $R_i = 1$, $R_f = 2$, evolution every five steps
+\begin{center}
+\begin{tabular}{ |c||c|c| } 
+ \hline
+ $\Delta x$ & Relative error & Absolute error \\ 
+ \hline
+ \hline
+ 0.01 & 7.748542215394623e-04 & 1.733593602790910e-06 \\ 
+ \hline 
+ 0.02 & 0.001599335350233 & 3.581173169031095e-06 \\ 
+ \hline
+ 0.04 & 0.003403733349545 & 7.635314330584758e-06 \\ 
+ \hline
+ 0.08 & 0.008250990444227 & 1.859922959702564e-05 \\ 
+ \hline
+\end{tabular}
+\end{center}
+\medskip
+
+We then did the analysis on a semicircle with homogeneous Dirichlet boundary conditions.
+
+$\Delta t = 0.2 \Delta x$, $T = 10$, $R_i = 1$, $R_f = 2$
+\begin{center}
+\begin{tabular}{ |c||c|c| } 
+ \hline
+ $\Delta x$ & Relative error & Absolute error \\ 
+ \hline
+ \hline
+ 0.01 & 6.521702721278259e-05 & 5.356428719340933e-09 \\ 
+ \hline 
+ 0.02 & 2.785112707550231e-04 & 2.287966992054532e-08 \\ 
+ \hline
+ 0.04 & 0.001287697723302 & 1.058911184234770e-07 \\ 
+ \hline
+ \end{tabular}
+\end{center}
+\medskip
+
+\section{Schnakenberg RDE over different types of domain growth}
+
+In this section we study a Schnakenberg reaction-diffusion equation on a circle using exponential growth, logistic growth and toroidal growth with total circumference growing exponentially. Under the parameters we choose, there should be period doubling bifurcations occuring as the circle gets larger.
+
+The reaction functions for the Schnakenberg model are
+\begin{align}
+f(U,V) &= a - U + U^2V, & g(U,V) &= b - U^2V,
+\end{align}
+and we chose the following parameter values for all simulations
+\begin{align}
+a &= 0.1, & b &= 0.9, & d &= 0.01.
+\end{align}
+
+\subsection{Exponential growth}
+For this trial we set time and space gridsize $dx = 0.02$, $dt = 0.004$ simulation time $T = 320$ and the following parameter values
+\begin{align}
+R_0 &= \frac{1}{2\pi}, & \rho &= 0.01.\label{expparams}
+\end{align}
+We observe the bifurcations just like other similar trials at similar times. Figures \ref{fig:Schnak_exp_1} and \ref{fig:Schnak_exp_2} show the solutions on the band and as a function of the angle on the circle at different stages of the simulation. There is a certain anchoring phenomenon happening at the start of the simulation that may be due to the very coarse initial grid.
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot1_4000.png}
+        \label{fig:Schnak_exp_1-1}
+    \end{subfigure}
+    ~ %add desired spacing between images, e. g. ~, \quad, \qquad, \hfill etc. 
+      %(or a blank line to force the subfigure onto a new line)
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot1_36000.png}
+        \label{fig:Schnak_exp_1-2}
+    \end{subfigure}
+		\\
+    ~ %add desired spacing between images, e. g. ~, \quad, \qquad, \hfill etc. 
+    %(or a blank line to force the subfigure onto a new line)
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot1_52000.png}
+        \label{fig:Schnak_exp_1-3}
+    \end{subfigure}
+		~
+		\begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot1_80000.png}
+        \label{fig:Schnak_exp_1-4}
+    \end{subfigure}
+    \caption{Pictures of animals}\label{fig:Schnak_exp_1}
+\end{figure}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot2_4000.png}
+        \label{fig:Schnak_exp_2-1}
+    \end{subfigure}
+    ~ %add desired spacing between images, e. g. ~, \quad, \qquad, \hfill etc. 
+      %(or a blank line to force the subfigure onto a new line)
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot2_36000.png}
+        \label{fig:Schnak_exp_2-2}
+    \end{subfigure}
+		\\
+    ~ %add desired spacing between images, e. g. ~, \quad, \qquad, \hfill etc. 
+    %(or a blank line to force the subfigure onto a new line)
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot2_52000.png}
+        \label{fig:Schnak_exp_2-3}
+    \end{subfigure}
+		~
+		\begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{CPMfigs/Schnak_circle_exp/Plot2_80000.png}
+        \label{fig:Schnak_exp_2-4}
+    \end{subfigure}
+    \caption{Pictures of animals}\label{fig:Schnak_exp_2}
+\end{figure}
+
+\subsection{Logistic growth}
+For the logistically growing domain we tried many configurations of maximal domain size and time and space grid sizes, while keeping the initial radius and initial relative growth rate at
+\begin{align}
+R_0 &= \frac{1}{2\pi}, & \rho &= 0.01.
+\end{align}
+We also set the total simulation time at $T = 1400$ to see if the final solution shapes are robust. To get results within reasonable times we had to increase the time step size considerably, which the implicit scheme should allow us to do. There is, however a limit to this increase, as we don't want the band to change too much from one time step to the next and effectively capture the action of the movement within the domain.
+
+Figure \ref{fig:Schnak_log_Tplot} shows a time-angle plot of the solution of a simulation with grid sizes $dx = 0.01$, $dt = 0.05$ and relative maximum domain size $\xi = 26$. We again observe period doublings as the domain increases in size and as the domain stops increasing the maximal values of each peak is slightly reduced to a stable level. The times of transition should be quite similar to Crampin's results one issue of the constant domain and changing diffusion coefficient was that the peaks would continue decaying and we do not observe that.
+
+\begin{figure}[ht]
+  \begin{subfigure}[b]{1.00\textwidth}
+	  \centering
+		  \includegraphics[width=0.90\textwidth]{CPMfigs/Schnak_circle_log/Tplot.png}
+	\end{subfigure}
+	\\
+	\begin{subfigure}[b]{1.00\textwidth}
+	  \centering
+		  \includegraphics[width=0.90\textwidth]{CPMfigs/Schnak_circle_log/Size.png}
+	\end{subfigure}
+	\caption{Marcel Barbeau}
+	\label{fig:Schnak_log_Tplot}
+\end{figure}
+
+\subsection{Toroidal growth - exponential profile}
+In this section we use an evolution function for the $\xi$ parameter described in equations (\ref{torxir}, \ref{torexprt}) such that each point on our domain goes through a toroidal trajectory, but the shape of the domain is the same as exponential growth. We use the same initial radius and relative growth rate (\ref{expparams}), but we start at time $t_0 = 0.1$ to avoid a singularity at the $\xi = \pi/2$ value.
+
+We computed the divergence term using two different methods. Initially we used the computation that yielded a term proportional to the coordinate $y$ and the second method used finite difference directional derivatives applied to a product of the computed velocity field with the solution. Both methods yield very similar results.
+
+We initially observe a clear anchoring behaviour with the solution aligning with the axis of symmetry $x = 0$. This is due to the divergence parameter breaking rotational symmetry on our domain, but preserving reflexion symmetry on that axis. Then we see the transition of peaks with a higher $y$ coordinate value happening earlier than the lower peaks, which creates a six peak pattern at the end of our $300$ time unit simulation. Figures \ref{fig:Tplot_torexp} and \ref{fig:Tplot_torexp_div} show time plots of the solutions with the divergence term computed using two different methods.
+
+\begin{figure}[ht]
+	\centering
+		\includegraphics[width=1.00\textwidth]{Figures/Tplot_torexp.png}
+	\caption{Time plot of the solution on the circle as a function of the angle around its centre with divergence term precomputed.}
+	\label{fig:Tplot_torexp}
+\end{figure}
+
+\begin{figure}[ht]
+	\centering
+		\includegraphics[width=1.00\textwidth]{Figures/Tplot_torexp_div.png}
+	\caption{Time plot of the solution on the circle as a function of the angle around its centre with divergence term computed numerically.}
+	\label{fig:Tplot_torexp_div}
+\end{figure}
+
+We also used a modified version of the code that used only the velocity field values in order to backtrack the closest point positions along with the finite difference directional derivatives and results are so far quite similar to the other simulations.
+
+
+
+\end{document}
